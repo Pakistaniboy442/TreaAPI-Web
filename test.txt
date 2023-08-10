@@ -1,0 +1,176 @@
+
+/* Messages */
+.message {
+    margin-bottom: 10px;
+    padding: 10px;
+    background-color: #2b2d31;
+    border-radius: 5px;
+    box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.1);
+    color: white;
+}
+
+.message .author {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.message .content {
+    font-size: 16px;
+}
+.messageSend {
+    background-color: #313338;
+    color: white;
+}
+
+.messageSend input {
+    color: white;
+    background-color: #383a40;
+    border: none;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Self Bot</title>
+</head>
+<style>
+html, body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-image: url('/public/discord.svg');
+    overflow: hidden;
+    background-size: 100% auto;
+    height: 100%;
+    width: 100%;
+}
+
+#messageContainer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+.messageBox {
+    width: 10em;
+    height: 10em;
+    padding: 10px;
+    display: flex;
+    justify-content: space-between;
+    background-color: #313338;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+    border-radius: 5px;
+}
+
+.messages {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.message {
+    padding: 10px;
+    background-color: #2b2d31;
+    border-radius: 5px;
+    box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.1);
+    color: white;
+}
+
+form {
+    flex: 1;
+    margin-left: 10px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+h1 {
+    font-size: 16px;
+    margin-bottom: 5px;
+}
+
+input {
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+button {
+    padding: 5px 10px;
+    background-color: #007bff;
+    color: #ffffff;
+    border: none;
+    border-radius: 5px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+</style>
+<body>
+  
+  <center>
+    <div id="messageContainer"></div>
+    <form class="messageSend" action="/api/send" method="post">
+        <h1>Send Message In Relay</h1>
+        <input placeholder="Enter your message" name="messagecontent" />
+        <button type="submit" value="Submit">Submit</button>
+    </form>
+  </center>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.2/socket.io.js"></script>
+    <script>
+      function fetchMessages() {
+        $.get('/api/getMessages', function (messages) {
+          var messageContainer = $('#messageContainer');
+          messageContainer.empty();
+    
+          for (var i = 0; i < messages.length; i++) {
+            var parts = messages[i].split('\n'); // Split the content into parts
+            
+            // Set author to "Anonymous" if undefined
+            var author = parts[1] ? parts[1] : 'Anonymous';
+    
+            var messageHTML = '<div class="message">' +
+                              '<div class="author">' + author + '</div>' + // Display author
+                              '<div class="content">' + parts[0] + '</div>' + // Display message content
+    
+                              // Check if embed description exists (parts[2])
+                              (parts[2] ? ('<div class="description">' + parts[2] + '</div>') : '') +
+    
+                              // Check if embed footer exists (parts[3])
+                              (parts[3] ? ('<div class="footer">' + parts[3] + '</div>') : '') +
+                              '</div>';
+            messageContainer.prepend(messageHTML);
+          }
+        });
+      }
+    
+      setInterval(fetchMessages, 100); // Poll for new messages every 100 milliseconds
+    </script>
+    
+</body>
+</html>
+
+.messages {
+    width: 100%; /* Take up remaining width */
+    display: grid;
+    gap: 10px;
+}
+
+.message {
+            width: 25em; /* Prevent messages from exceeding the box width */
+            word-wrap: break-word;
+            min-height: 3em;
+            background-color: #2b2d31;
+            border-radius: 5px;
+            border: none;
+            color: white;
+        }
