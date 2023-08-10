@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Self Bot</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans&display=swap" rel="stylesheet">
+</head>
+<style>
+body {
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+    background-image: url('/public/discord.svg');
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: 'Noto Sans', sans-serif;
+}
+
+.scrollbar
+{
+	margin-left: 30px;
+	float: left;
+	height: 49em;
+	width: 60em;
+	background: #313338;
+	overflow-y: scroll;
+}
+
+.force-overflow
+{
+	min-height: 450px;
+}
+
+
+#style-1::-webkit-scrollbar-track
+{
+	-webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.3);
+	border-radius: 10px;
+	background-color: #313338;
+}
+
+#style-1::-webkit-scrollbar
+{
+	width: 5px;
+	background-color: #313338;
+}
+
+#style-1::-webkit-scrollbar-thumb
+{
+	border-radius: 10px;
+	-webkit-box-shadow: inset 0 0 6px rgba(0,0,0,.3);
+	background-color: #2b2d31;
+}
+
+
+.container {
+    width: 60em;
+    height: 50em;
+    background-color: #313338;
+    display: flex;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.messages {
+    flex: 1;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: flex-start;
+    overflow-y: auto;
+    background-color: #2b2d31;
+    color: white;
+}
+
+.messageSend {
+    flex: 0 0 30%;
+    padding: 20px;
+    background-color: #2b2d31;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    border-left: 1px solid #313338;
+}
+
+h1 {
+    font-size: 16px;
+    margin-bottom: 10px;
+    color: white;
+}
+
+input {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #1e1f22;
+    border-radius: 5px;
+    font-size: 14px;
+    background-color: #1e1f22;
+    color: white;
+    outline: none;
+}
+
+button {
+    padding: 8px 15px;
+    background-color: #6064f4;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+</style>
+<body>
+    <div class="container">
+        <div class="messages scrollbar" id="style-1">
+            <div class="force-overflow"></div>
+        </div>
+        <form id="messageForm" class="inputBox messageSend">
+            <h1>Send a message in the relay </h1>
+            <input id="nickvalue" placeholder="Enter a nickname or not." name="username" />
+            <input id="messagevalue" placeholder="Enter a message" name="messagecontent" required />
+            <button type="submit" type="button">Send the message</button>
+            <p style="color: white; font-size: 1.2em; text-align: center;">TreaAPI is unoffical and not affliliated with Global Chat</p>
+        </form>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.2/socket.io.js"></script>
+    <script>
+  const maxDisplayedMessages = 5;
+const pageSize = 5;
+const requestInterval = 2000;
+
+let currentPage = 0;
+let isFetching = false;
+
+function isImageOrGif(url) {
+    console.log(url)
+    if (!url) {
+        return null;
+    }
+
+    // Remove query parameters from the URL
+    const cleanUrl = url.split('?')[0];
+    
+    const urlRegex = /https?:\/\/[^\s]+/ig; // Regular expression to match URLs
+    const urlMatches = cleanUrl.match(urlRegex);
+    
+    if (!urlMatches) {
+        return null;
+    }
+    
+    const imgExtensions = ['.gif', '.png', '.jpg', '.jpeg', '.webp'];
+    const validURL = urlMatches.find(url => {
+        const fileExtension = url.toLowerCase().match(/\.\w+(?=\?|$)/);
+        return fileExtension && imgExtensions.includes(fileExtension[0]);
+    });
+    
+    return validURL || null;
+}
+
+
+function fetchMessages(page) {
+    if (isFetching) return;
+
+    isFetching = true;
+
+    $.get(`/api/getMessages`, function (messages) {
+        const messageContainer = $('.messages');
+        messageContainer.empty();
+
+        messages.slice(0, maxDisplayedMessages).forEach((message) => {
+            const authorName = message.author ? message.author.username : 'Unknown Author';
+            const footer = message.footer || message.author.id;
+
+            let contentHTML = '';
+
+            if (message.embed === true) {
+                const embedAuthor = message.embedAuthor || authorName;
+                if (message.attachmentLink && isImageOrGif(message.attachmentLink)) {
+                    contentHTML = `<div class="author">${embedAuthor}</div><div class="content"><img src="${message.attachmentLink}" alt="Attachment" style="max-width: 10em; max-height: 10em;"></div>`;
+                } else if (message.emojis) {
+                    const emojis = message.emojis.map(emojiLink => `<img src="${emojiLink}" alt="Emoji" style="max-width: 10em; max-height: 10em;">`).join('');
+                    contentHTML = `<div class="author">${embedAuthor}</div><div class="content">${emojis}</div>`;
+                }
+            } else if (isImageOrGif(message.content)) {
+                if (authorName === 'treaapi') {
+                const startIndex = message.content.indexOf('[@');
+                const endIndex = message.content.indexOf(']');
+                if (startIndex === 0 && endIndex > 0) {
+                    const extractedText = message.content.substring(startIndex + 1, endIndex).trim();
+                    const updatedText = message.content.substring(endIndex + 2).trim();
+                    const username = extractedText || 'TreaAPI';
+                contentHTML = `<div class="author">${extractedText}</div><div class="content"><img src="${isImageOrGif(message.content)}" alt="GIF/Image" style="max-width: 10em; max-height: 10em;"></div>`;
+                } else {
+                    contentHTML += `<div class="author">TreaAPI</div><div class="content"><img src="${isImageOrGif(message.content)}" alt="GIF/Image" style="max-width: 10em; max-height: 10em;"></div><hr class="divider"><div class="content">${footer}</div>`;
+                }
+            } else {
+                contentHTML = `<div class="author">${authorName}</div><div class="content"><img src="${isImageOrGif(message.content)}" alt="GIF/Image" style="max-width: 10em; max-height: 10em;"></div>`;
+            }
+            } else if (message.emojis) {
+                if (authorName === 'treaapi') {
+                const startIndex = message.content.indexOf('[@');
+                const endIndex = message.content.indexOf(']');
+                if (startIndex === 0 && endIndex > 0) {
+                    const extractedText = message.content.substring(startIndex + 1, endIndex).trim();
+                    const updatedText = message.content.substring(endIndex + 2).trim();
+                    const username = extractedText || 'TreaAPI';
+                    const emojis = message.emojis.map(emojiLink => `<img src="${emojiLink}" alt="Emoji" style="max-width: 10em; max-height: 10em;">`).join('');
+                    contentHTML = `<div class="author">${extractedText}</div><div class="content">${emojis}</div>`;
+                } else {
+                    contentHTML += `<div class="author">TreaAPI</div><div class="content">${emojis}</div><hr class="divider"><div class="content">${footer}</div>`;
+                }
+            } else {
+                const emojis = message.emojis.map(emojiLink => `<img src="${emojiLink}" alt="Emoji" style="max-width: 10em; max-height: 10em;">`).join('');
+                    contentHTML = `<div class="author">${authorName}</div><div class="content">${emojis}</div>`;
+            }
+                }
+
+            // Check if the message author's username is "treaapi"
+            if (authorName === 'treaapi') {
+                const startIndex = message.content.indexOf('[@');
+                const endIndex = message.content.indexOf(']');
+                if (startIndex === 0 && endIndex > 0) {
+                    const extractedText = message.content.substring(startIndex + 1, endIndex).trim();
+                    const updatedText = message.content.substring(endIndex + 2).trim();
+                    const username = extractedText || 'TreaAPI';
+                    contentHTML += `<div class="author">${username}</div><div class="content">${updatedText}</div><hr class="divider"><div class="content">${footer}</div>`;
+                } else {
+                    contentHTML += `<div class="author">TreaAPI</div><div class="content">${message.content}</div><hr class="divider"><div class="content">${footer}</div>`;
+                }
+            } else {
+                const startIndex = message.content.indexOf('[@');
+                const endIndex = message.content.indexOf(']');
+                if (startIndex === 0 && endIndex > 0) {
+                    const extractedText = message.content.substring(startIndex + 1, endIndex).trim();
+                    const updatedText = message.content.substring(endIndex + 2).trim();
+                    const username = extractedText || message.author.username;
+                    contentHTML += `<div class="author">${username}</div><div class="content">${updatedText}</div><hr class="divider"><div class="content">${footer}</div>`;
+                } else {
+                    contentHTML += `<div class="author">${message.author.username}</div><div class="content">${message.content}</div><hr class="divider"><div class="content">${footer}</div>`;
+                }
+            }
+
+            if (contentHTML) {
+                const messageHTML = `<div class="message" style="clear: both;">
+                    ${contentHTML}
+                </div>
+                <br />`;
+                messageContainer.prepend(messageHTML);
+            }
+        });
+
+        const messageBox = $('.messageBox');
+        const containerPadding = parseFloat(messageBox.css('padding-top')) + parseFloat(messageBox.css('padding-bottom'));
+        const maxHeight = 12 * 16;
+        const newHeight = Math.min(messageContainer.height() + containerPadding, maxHeight);
+        messageBox.height(newHeight);
+
+        isFetching = false;
+    });
+}
+
+
+
+
+
+$(document).ready(function () {
+    fetchMessages(currentPage);
+});
+
+setInterval(() => {
+    if (!isFetching) {
+        fetchMessages(currentPage);
+        currentPage = (currentPage + 1) % (Math.ceil(maxDisplayedMessages / pageSize) + 1);
+    }
+}, requestInterval);
+
+$(document).ready(function () {
+    $('#messageForm').submit(function (e) {
+        const messageContent = $('#messagevalue').val();
+        const nickContent = $('#nickvalue').val();
+        let fullMessage = messageContent;
+
+        if (nickContent.trim() !== '') {
+            fullMessage = `[@${nickContent}]: ${messageContent}`;
+        }
+
+        if (messageContent.trim() !== '') {
+            e.preventDefault();
+            $.ajax({
+                url: "/api/send",
+                type: "POST",
+                data: {
+                    'messagedata': fullMessage,
+                },
+                success: function(data){
+                    $('#messagevalue').val('');
+                },
+                error: function(xhr, status, error) {
+                    if (xhr.status === 400) {
+                        const response = JSON.parse(xhr.responseText);
+                        alert(response.message);
+                    } else {
+                        alert('An error occurred while sending the message.');
+                    }
+                }
+            });
+        }
+    });
+});
+
+
+    </script>
+    
+</body>
+</html>
